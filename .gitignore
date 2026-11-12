@@ -3,3 +3,13 @@ node_modules/
 .cache/
 test/scratch/
 *.tgz
+
+# Required revision deliverables: explicit path budget, 224 KiB combined.
+# headline-image.png <= 160 KiB; LED preview <= 32 KiB;
+# validation.md <= 24 KiB; .imd-responses.json <= 8 KiB.
+!/artifacts/
+/artifacts/*
+!/artifacts/headline-image.png
+!/artifacts/headline-image.led-preview.png
+!/artifacts/validation.md
+!/.imd-responses.json

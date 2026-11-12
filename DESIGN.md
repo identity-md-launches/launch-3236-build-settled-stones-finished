@@ -1,6 +1,6 @@
 # DESIGN.md: Settled Stones
 
-Extracted from the final source: `src/styles.css` (all tokens and rules), `src/App.tsx`, `src/Stone.tsx`, `index.html`, `public/favicon.svg`. The accepted submission was observed in headless Chromium at 320, 390 and 1440 wide. This revision retains that layout and visual system; its new checks used source review and JSDOM because Chromium could not launch. Historical rendered measurements below have not been re-established for the revised export; see `artifacts/validation.md`.
+Extracted from the final source: `src/styles.css` (all tokens and rules), `src/App.tsx`, `src/Stone.tsx`, `index.html`, `public/favicon.svg`. This revision preserves the visual system and changes only the narrow hand-control grid. The finished export was checked in standalone headless Chromium with recorded official rounds at 320, 360, 390, 899, 900 and 1440px, including touch placement and discard. The browser tool itself could not launch; see `artifacts/validation.md` for evidence and limitations.
 
 ## Overview
 
@@ -44,6 +44,7 @@ All colours are custom properties in `:root` (`src/styles.css:3–25`), hex nota
 - `.page`: max-width 72rem, centred; padding 0.75rem 0.5rem 2rem below 900px, 1.5rem 1.5rem 2rem from 900px.
 - Header `.top`: flex, title + tagline at the left edge, table switch (`Today` / `Live`, plus `Shared` when a share link is open) at the right edge.
 - `.layout`: one column below 900px (board, status, stone in hand + controls, score, tray, Inspect, share). From 900px: two columns, `minmax(0, 34rem)` board column and `minmax(0, 1fr)` side column, gap 2rem.
+- `.controls`: four columns normally; at widths up to 360px, two equal columns using `repeat(2, minmax(0, 1fr))`. Buttons retain the `--hit` 44px minimum height and normal text size. This fits the dealt table at 320px with both 16px and enlarged 20px root text.
 - Board: `width: 100%; max-width: 34rem; aspect-ratio: 1`, so cells are about 38px at 390 wide, 30px at 320, and 57px on desktop. No horizontal scroll at 320, 390 or 1440 (probe).
 - The status line keeps `min-height: 3em` so messages never push the controls around.
 

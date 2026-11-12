@@ -111,9 +111,27 @@ node scripts/render-cover-static.mjs
 - `src/App.tsx`, `src/Stone.tsx`, `src/styles.css`: the interface
 - `abi/SqueekCore.json`, `artifacts/`, `dist/`, `DESIGN.md`
 
-`.gitignore` was added to keep `node_modules/`, `.npm/`, `.cache/`, `test/scratch/` and `*.tgz` out of Git. Path budget: everything committed (source, lockfile, `dist/` ≈ 0.4 MB, `artifacts/` ≈ 0.25 MB, ABI 24 kB) is well under 8 MiB.
+`.gitignore` keeps `node_modules/`, `.npm/`, `.cache/`, `test/scratch/` and `*.tgz` out of Git. The revision explicitly allows only the required headline PNGs, validation document and review response through existing exclusions. Path budget for this ignore change: `artifacts/headline-image.png` ≤160 KiB, `artifacts/headline-image.led-preview.png` ≤32 KiB, `artifacts/validation.md` ≤24 KiB, `.imd-responses.json` ≤8 KiB (224 KiB combined). Source, lockfile, production assets and ABI remain complete; the total submission stays below 8 MiB.
 
-## Revision validation (2026-11-12)
+## Revision: finished covers and narrow controls (2026-11-12)
+
+The missing-cover report reproduced: `node --test test/export.test.mjs` failed with ENOENT. This revision includes the actual `artifacts/headline-image.png` (126,459 bytes) and `artifacts/headline-image.led-preview.png` (25,991 bytes), both 1920×1080 PNGs. They were rendered from the existing drawing; the existing social thumbnail is preserved. The preview contains exactly 64×36 uniform 30×30 pixel blocks. The official Code ramp remains unverified; the approximate preview is explicitly labelled above.
+
+The four-column control grid reproduced the reported intrinsic-width problem with larger reader text: at 320px with a 20px root font, the controls ended at 365.20px and the page scrolled to 365px. This machine's default 16px serif fallback wrapped the discard label and did not reproduce the reviewer's exact 336px measurement. At up to 360px, the controls now use two `minmax(0, 1fr)` columns and keep their 44px minimum height. The final export fits at 320, 360, 390, 899, 900 and 1440px; at 320px, all four controls fit and touch Rotate, Flip, Place and Discard work. The larger-text case now also has `scrollWidth = clientWidth = 320`.
+
+Current commands, results, six-domain review and limitations are in [artifacts/validation.md](artifacts/validation.md). `.imd-responses.json` answers both reopened findings. The additional browser regression uses only the recorded official RPC fixtures and makes no external requests:
+
+```sh
+# Optional browser tooling, confined to disposable scratch space.
+npm install --prefix test/scratch/tools --cache test/scratch/npm-cache --no-audit --no-fund playwright@1.61.1
+IMD_PLAYWRIGHT="$PWD/test/scratch/tools/node_modules/playwright/index.mjs" \
+IMD_CHROMIUM_EXECUTABLE=/path/to/chrome-headless-shell \
+node --test test/layout.test.mjs
+```
+
+The executable override is optional when Playwright's matching browser is installed. Screenshots are written only under `test/scratch/layout/` and are not part of the submission.
+
+## Earlier revision validation (historical, 2026-11-12)
 
 The five review reports were reproduced before changes. Detailed evidence, the six-domain design review and limitations are in [artifacts/validation.md](artifacts/validation.md); the response to each finding is in `.imd-responses.json`.
 
