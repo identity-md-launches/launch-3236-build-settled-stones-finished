@@ -78,9 +78,12 @@ export default function App() {
   const [apiDisagrees, setApiDisagrees] = useState(false);
   const [settlements, setSettlements] = useState<ListedTx[] | null>(null);
   const [settleState, setSettleState] = useState<'unknown' | 'listed' | 'loading'>('loading');
-  const coreTrusted = useRef<boolean>(true);
+  const coreTrusted = useRef<boolean | null>(null);
+  const apiIdentityEpoch = useRef(0);
+  const lastSettlementsAttempt = useRef<number | null>(null);
 
   const [live, setLive] = useState<{ from: bigint | null; through: bigint | null; on: boolean; done: boolean; note: string | null }>({ from: null, through: null, on: false, done: false, note: null });
+  const liveStarting = useRef(false);
 
   const { copied, copy } = useCopy();
   const boardRef = useRef<HTMLDivElement>(null);
@@ -93,6 +96,7 @@ export default function App() {
 
   // ---------- official data: state() then the table ----------
   useEffect(() => {
+    if (mode === 'live') return; // Live reads its own starting frontier before polling.
     const ctl = new AbortController();
     (async () => {
       setError(null);
@@ -140,6 +144,26 @@ export default function App() {
   // (computed in makeTable)
 
   // ---------- API: status <= every 8s, settlements <= once a minute ----------
+  const loadSettlements = useCallback(async (refresh = false) => {
+    if (coreTrusted.current !== true) return;
+    const now = Date.now();
+    if (!refresh && lastSettlementsAttempt.current !== null && now - lastSettlementsAttempt.current < SETTLE_POLL_MS) return;
+    lastSettlementsAttempt.current = now;
+    const epoch = apiIdentityEpoch.current;
+    setSettleState('loading');
+    const r = await fetchSettlements();
+    // A response started under an earlier identity must not restore rejected data,
+    // even if the API has since returned to the pinned proxy.
+    if (epoch !== apiIdentityEpoch.current) return;
+    if (r.ok && coreTrusted.current === true) {
+      setSettlements(r.data);
+      setSettleState('listed');
+    } else {
+      setSettlements(null);
+      setSettleState('unknown');
+    }
+  }, []);
+
   useEffect(() => {
     let stop = false;
     let timer = 0;
@@ -147,16 +171,26 @@ export default function App() {
       if (document.visibilityState === 'visible') {
         const r = await fetchStatus();
         if (stop) return;
+        if (!r.ok || r.data.coreMatches !== true) {
+          coreTrusted.current = r.ok ? r.data.coreMatches : null;
+          apiIdentityEpoch.current++;
+          setSettlements(null);
+          setSettleState('unknown');
+          setApiDisagrees(false);
+        }
         if (!r.ok) {
           setApiNote(`Squeekchain API unavailable (${r.reason}); its data is unknown. Play reads SqueekCore directly.`);
         } else if (r.data.coreMatches === false) {
-          coreTrusted.current = false;
           setApiNote('The API names a different core contract, so its data is ignored.');
+        } else if (r.data.coreMatches === null) {
+          setApiNote('The API has not identified its core contract, so its data is unknown.');
         } else {
+          const newlyTrusted = coreTrusted.current !== true;
           coreTrusted.current = true;
           setApiNote('Squeekchain API reachable.');
           const s = r.data.settledThroughRound;
           setApiDisagrees(s !== null && core !== null && s !== core.settledThroughRound);
+          if (newlyTrusted) void loadSettlements();
         }
         timer = window.setTimeout(tick, r.ok ? STATUS_POLL_MS : Math.max(STATUS_POLL_MS * 4, (!r.ok && r.retryAfterMs) || 0));
         return;
@@ -165,22 +199,10 @@ export default function App() {
     };
     tick();
     return () => { stop = true; window.clearTimeout(timer); };
-  }, [core]);
-
-  const loadSettlements = useCallback(async () => {
-    setSettleState('loading');
-    const r = await fetchSettlements();
-    if (r.ok && coreTrusted.current) {
-      setSettlements(r.data);
-      setSettleState('listed');
-    } else {
-      setSettlements(null);
-      setSettleState('unknown');
-    }
-  }, []);
+  }, [core, loadSettlements]);
   useEffect(() => {
     loadSettlements();
-    const t = window.setInterval(loadSettlements, SETTLE_POLL_MS);
+    const t = window.setInterval(() => void loadSettlements(), SETTLE_POLL_MS);
     return () => window.clearInterval(t);
   }, [loadSettlements]);
 
@@ -223,15 +245,21 @@ export default function App() {
 
   const startLive = useCallback(async () => {
     setMode('live');
-    if (live.on) return;
+    setError(null);
+    if (live.on || liveStarting.current) return;
+    liveStarting.current = true;
+    setLive((l) => ({ ...l, note: 'Reading the current SqueekCore frontier for Live…' }));
     try {
-      const s = core ?? (await readState());
+      const s = await readState();
       setCore(s);
       setLive({ from: s.settledThroughRound, through: s.settledThroughRound, on: true, done: false, note: null });
     } catch {
+      setError('Live could not reach a Sepolia RPC.');
       setLive((l) => ({ ...l, note: 'Live could not reach a Sepolia RPC. Try again.' }));
+    } finally {
+      liveStarting.current = false;
     }
-  }, [core, live.on]);
+  }, [live.on]);
 
   // ---------- play ----------
   const cells = tile ? footprint(tile, play.quarter, play.flipped, play.anchor) : [];
@@ -411,7 +439,7 @@ export default function App() {
 
           <p className={`status${error ? ' err' : ''}`} role="status" aria-live="polite">
             {play.reject ?? (game.finished ? `Table finished: ${sc.total} points.` : play.lastFate ?? (mode === 'live' ? (live.note ?? (live.on ? (tile ? 'Place the newest official stone.' : `Waiting for the next certified active round after ${live.through ?? '…'}.`) : 'Connecting to SqueekCore…')) : status))}
-            {error && <> <button type="button" className="btn small" onClick={() => setAttempt((a) => a + 1)}>Retry</button></>}
+            {error && <> <button type="button" className="btn small" onClick={() => mode === 'live' ? void startLive() : setAttempt((a) => a + 1)}>Retry</button></>}
           </p>
           {loading && !error && <p className="sr-only">Loading official rounds.</p>}
         </section>
@@ -473,7 +501,7 @@ export default function App() {
                     const tx = txForRound(settlements, inspect.roundId);
                     if (tx) return <><button type="button" className="chip num hash" onClick={() => copy('tx', tx)}>{tx}</button>{copied === 'tx' && <span className="ok"> copied</span>}</>;
                     if (settleState === 'loading') return 'Checking the API…';
-                    if (settleState === 'unknown') return <>Unknown: the API is unavailable. <button type="button" className="btn small" onClick={loadSettlements}>Refresh</button></>;
+                    if (settleState === 'unknown') return <>Unknown: the API is unavailable or its core is unverified. <button type="button" className="btn small" onClick={() => void loadSettlements(true)}>Refresh</button></>;
                     return 'Not in the API’s recent settlements.';
                   })()}
                 </dd>

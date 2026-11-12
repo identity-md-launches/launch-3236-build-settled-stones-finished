@@ -19,10 +19,12 @@ async function getJson(path: string): Promise<ApiResult<unknown>> {
   }
   if (res.status === 304 && prior) return { ok: true, data: prior.body };
   if (res.status === 429 || res.status === 503) {
-    const ra = res.headers.get('Retry-After');
-    const secs = ra && /^\d+$/.test(ra) ? Number(ra) : 60;
-    blockedUntil.set(path, Date.now() + secs * 1000);
-    return { ok: false, reason: `API asked to retry after ${secs}s`, retryAfterMs: secs * 1000 };
+    const ra = res.headers.get('Retry-After')?.trim();
+    const now = Date.now();
+    const delay = ra && /^\d+$/.test(ra) ? Number(ra) * 1000 : ra ? Date.parse(ra) - now : NaN;
+    const retryAfterMs = Number.isFinite(delay) ? Math.max(0, delay) : 60000;
+    blockedUntil.set(path, now + retryAfterMs);
+    return { ok: false, reason: `API asked to retry after ${Math.ceil(retryAfterMs / 1000)}s`, retryAfterMs };
   }
   if (!res.ok) return { ok: false, reason: `API answered ${res.status}` };
   try {

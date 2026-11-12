@@ -170,7 +170,6 @@ h3 { font-size: var(--t-m); font-weight: 700; }
   background: var(--bed); border: 0; border-radius: 4px;
 }
 .chip.hash { overflow-wrap: anywhere; word-break: break-all; padding-block: var(--s2); }
-.ids .chip { min-height: 32px; }
 .ok { color: var(--ok); }
 .note { color: var(--ink-soft); padding-inline: var(--s1); margin-bottom: var(--s2); }
 .note.warn { color: var(--press); }

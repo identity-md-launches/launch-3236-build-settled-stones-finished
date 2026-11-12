@@ -15,7 +15,8 @@ svg{position:absolute;inset:0}
 const NS='http://www.w3.org/2000/svg', art=document.getElementById('art');
 const el=(t,a,p=art)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e};
 const stone={0:'#2f6b4c',1:'#2d4f9e',2:'#8e2a33',3:'#b07a1c'}, mark={0:'#c9f2d6',1:'#cfe0ff',2:'#ffd0d4',3:'#ffe7a8'};
-const N=9, S=82, G=14, size=N*S+(N-1)*G, X0=960-size/2, Y0=540-size/2+20;
+// Each well and gap survives the official 64x36 sampling grid.
+const N=9, S=60, G=30, size=N*S+(N-1)*G, X0=960-size/2, Y0=540-size/2;
 // board shadow + bed
 el('rect',{x:X0-40,y:Y0-10,width:size+80,height:size+80,rx:36,fill:'#000',opacity:.55,filter:'url(#soft)'});
 el('rect',{x:X0-28,y:Y0-28,width:size+56,height:size+56,rx:26,fill:'url(#bed)'});
@@ -41,7 +42,7 @@ function drawStone(px,py,w,s,lift){
 for(let y=0;y<N;y++)for(let x=0;x<N;x++){
   const px=X0+x*(S+G), py=Y0+y*(S+G), k=x+','+y;
   if(occ.has(k)) drawStone(px,py,S,occ.get(k),0);
-  else { el('rect',{x:px,y:py,width:S,height:S,rx:12,fill:'#a8916a'}); el('rect',{x:px+3,y:py+5,width:S-6,height:S-8,rx:10,fill:'#c2ad84'}); }
+  else { el('rect',{x:px,y:py,width:S,height:S,rx:12,fill:'#18140e'}); el('rect',{x:px+3,y:py+5,width:S-6,height:S-8,rx:10,fill:'#30291e'}); }
 }
 // target wells for the falling O stone: (3,4),(4,4),(3,5),(4,5) outlined
 for(const [x,y] of [[3,4],[4,4],[3,5],[4,5]]){const px=X0+x*(S+G),py=Y0+y*(S+G);el('rect',{x:px+4,y:py+4,width:S-8,height:S-8,rx:10,fill:'none',stroke:'#8e2a1f','stroke-width':5,'stroke-dasharray':'14 10'});}

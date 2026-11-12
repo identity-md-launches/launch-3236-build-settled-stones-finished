@@ -90,7 +90,16 @@ npm run preview   # serve dist/ locally
 
 `vite.config.ts` sets `base: './'`, so `dist/` uses relative asset URLs and works from any gateway subpath. Rebuild and commit `dist/` after every source change.
 
-Cover art: `scripts/cover.html` is the drawing; `IMD_PLAYWRIGHT=/path/to/playwright/index.mjs node scripts/render-cover.mjs` renders `artifacts/headline-image.png` (1920×1080 PNG), `artifacts/headline-image.led-preview.png` (16:9 centre crop, area-averaged to 64×36, 8 steps per channel, nearest-neighbour upscale), `public/og-image.png` (1200×675) and `public/favicon-64.png`.
+Cover art: `scripts/cover.html` is the drawing; `IMD_PLAYWRIGHT=/path/to/playwright/index.mjs node scripts/render-cover.mjs` renders `artifacts/headline-image.png` (1920×1080 PNG), `artifacts/headline-image.led-preview.png` (16:9 centre crop, area-averaged to 64×36, nearest-neighbour upscale), `public/og-image.png` (1200×675) and `public/favicon-64.png`. Both required headline PNGs are now included. The preview uses the existing **approximate eight-step RGB ramp; it is not verified as the official Code ramp**. Official Code was unavailable during the revision; its authoritative palette/conversion is still needed to certify that part of the cover requirement.
+
+The browser-free renderer used for these PNGs is `scripts/render-cover-static.mjs`. It rasterizes the same local SVG drawing with Sharp, without loading the game or uploading the picture. Optional tooling, installed only in disposable scratch space:
+
+```sh
+npm install --prefix test/scratch/tools --cache test/scratch/npm-cache --no-audit --no-fund jsdom@31.0.0 sharp@0.35.5 @sinonjs/fake-timers@15.4.0
+IMD_JSDOM="$PWD/test/scratch/tools/node_modules/jsdom/lib/api.js" \
+IMD_SHARP="$PWD/test/scratch/tools/node_modules/sharp/dist/index.cjs" \
+node scripts/render-cover-static.mjs
+```
 
 ## Layout of the repository
 
@@ -104,7 +113,43 @@ Cover art: `scripts/cover.html` is the drawing; `IMD_PLAYWRIGHT=/path/to/playwri
 
 `.gitignore` was added to keep `node_modules/`, `.npm/`, `.cache/`, `test/scratch/` and `*.tgz` out of Git. Path budget: everything committed (source, lockfile, `dist/` ≈ 0.4 MB, `artifacts/` ≈ 0.25 MB, ABI 24 kB) is well under 8 MiB.
 
-## Validation (run on 2026-11-12)
+## Revision validation (2026-11-12)
+
+The five review reports were reproduced before changes. Detailed evidence, the six-domain design review and limitations are in [artifacts/validation.md](artifacts/validation.md); the response to each finding is in `.imd-responses.json`.
+
+- Inspect starts with unknown API identity. Settlement requests require a positive match to the pinned proxy. Missing/mismatched identity or a failed status request clears prior hashes and invalidates in-flight responses; identity recovery cannot revive an earlier response. Automatic settlement requests remain at least 60 seconds apart; manual refresh still obeys server Retry-After.
+- Starting Live always reads fresh `state()` and initializes both frontiers before enabling its poll. Repeated clicks share the initialization; returning to an already-started Live table preserves it. A failed initialization leaves the board and Retry available.
+- Retry-After handles delay-seconds and HTTP-date forms for both endpoints, including manual refreshes. A past date clamps to zero; invalid or missing values fall back to 60 seconds.
+- The seal now inherits the shared 44px minimum height. The game's board, typography, palette, formula, RPC configuration, ABI and deployment pin are retained.
+- Both headline PNGs are shipped, 1920×1080 and under 4 MB. Darker wells and wider gaps make the 9×9 grid survive 64×36 sampling. The official ramp remains unverified, as explained above.
+
+| Check run for this revision | Actual result |
+| --- | --- |
+| `npm run typecheck --prefix test/scratch/build` | pass, TypeScript 5.9.3 |
+| `npm run build --prefix test/scratch/build` | pass, Vite 6.4.6; export copied to `dist/` |
+| `npm test` | 6/6 formula tests pass, including 1212 and `deb98f44` |
+| `node --test test/api.test.mjs test/export.test.mjs` | 5/5 pass: Retry-After, ETag, identity parsing, required PNGs, export metadata/assets |
+| `node test/ui-regression.mjs` with the optional modules below | 12/12 pass against the production bundle in JSDOM; no network requests |
+| Pinned `taste.mjs --out test/scratch/taste` | could not measure: Playwright's matching executable was absent. A separate launch of the available Chromium failed with `socket() failed: Operation not permitted`. No new browser screenshots, viewport/overflow checks or rendered contrast measurements are claimed. |
+
+The build ran in a scratch mirror to leave the repository's `node_modules/` untouched: copy `package.json` and `package-lock.json` to `test/scratch/build/`, run `npm ci --prefix test/scratch/build --cache test/scratch/npm-cache`, copy `src/`, `public/`, `index.html`, `tsconfig.json` and `vite.config.ts` into that mirror, run the scripts above, then replace `dist/` with the mirror's output. Normal local development can use the simpler root commands in the installation section.
+
+The additional API tests use Node 24's type stripping; the DOM suite uses the optional scratch tools installed above:
+
+```sh
+node --test test/api.test.mjs test/export.test.mjs
+IMD_JSDOM="$PWD/test/scratch/tools/node_modules/jsdom/lib/api.js" \
+IMD_FAKE_TIMERS="$PWD/test/scratch/tools/node_modules/@sinonjs/fake-timers/src/fake-timers-src.js" \
+node test/ui-regression.mjs
+```
+
+The DOM suite covers initial/missing/mismatched API identity, loss of a previously verified identity, API unavailability, an old in-flight response arriving after recovery, polling limits, delayed Live initialization, repeat clicks, tab switching, subsequent certified rounds, Live retry, keyboard placement, illegal placement, scoring, local best, discard, copying and shared round 1212. `test/fixtures/sepolia-rpc.json` contains real recorded proxy responses; only the test frontier and test API responses are controlled. These fixtures are never bundled into the site. DOM simulation does not establish layout or real-device behavior.
+
+Rechecking the official Deployments and ABI URLs still reached an access login, and the official Code page could not be loaded. The existing pin and ABI were left unchanged. The proxy remained reachable through the permitted public RPC; its state reported frontier 1248, and `roundPage(1211,1212,16)` again gave work 80 and the published hash. The live API and official Code conversion remain external verification limitations. No hosting or public-repository operation was performed.
+
+## Initial-submission validation record (prior run)
+
+The following is retained from the accepted submission; its browser/probe results are historical, **not measurements of this revised export**. The revision's results and limitations above take precedence.
 
 | Check | Command | Result |
 | --- | --- | --- |

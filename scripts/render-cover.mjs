@@ -1,5 +1,6 @@
 // Renders the cover art (scripts/cover.html) to artifacts/headline-image.png (1920x1080),
-// a 64x36 LED preview (16:9 centre crop, area average, 8-step ramp, nearest-neighbour upscale),
+// a 64x36 LED preview (16:9 centre crop, area average, approximate 8-step RGB ramp, nearest-neighbour upscale),
+// The official Code ramp could not be verified. Browser-free alternative: render-cover-static.mjs.
 // the og:image (1200x675) and a PNG favicon. Usage: IMD_PLAYWRIGHT=/path/to/playwright/index.mjs node scripts/render-cover.mjs
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import path from 'node:path';

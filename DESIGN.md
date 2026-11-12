@@ -1,6 +1,6 @@
 # DESIGN.md: Settled Stones
 
-Extracted from the final source: `src/styles.css` (all tokens and rules), `src/App.tsx`, `src/Stone.tsx`, `index.html`, `public/favicon.svg`. Observed in headless Chromium at 320, 390 and 1440 wide.
+Extracted from the final source: `src/styles.css` (all tokens and rules), `src/App.tsx`, `src/Stone.tsx`, `index.html`, `public/favicon.svg`. The accepted submission was observed in headless Chromium at 320, 390 and 1440 wide. This revision retains that layout and visual system; its new checks used source review and JSDOM because Chromium could not launch. Historical rendered measurements below have not been re-established for the revised export; see `artifacts/validation.md`.
 
 ## Overview
 
@@ -68,13 +68,15 @@ Depth is reserved for the physical table:
 | Stone / glyph | `src/Stone.tsx` (`SuitMark`, `StoneGlyph`), `.stone`, `.suit-N`, `.mark` | Four incised marks: Jade ring, Lapis wave, Garnet lozenge, Amber star. Glyph is a mini-grid for the hand and the tray. |
 | Button | `.btn`, `.btn.primary`, `.btn.quiet`, `.btn.small` | Outline ink button; primary is solid letterpress red (only Place); quiet is dashed (Discard once). Disabled at 0.55 opacity with `not-allowed`. Hover only on `(hover: hover)` devices. |
 | Tab | `.tab` with `aria-pressed` | Table switch; pressed = ink fill with paper text. |
-| Chip | `.chip`, `.chip.hash` | Copy button for an official number (round, work, dataHash, tx, seal); shows "copied" beside it. |
+| Chip | `.chip`, `.chip.hash` | Copy button for an official number (round, work, dataHash, tx, seal); shows "copied" beside it. All chips, including the heading's seal, inherit `min-height: var(--hit)` (44px); there is no shorter heading override. |
 | Tray | `.tray`, `.tray-item` with `.now`, `.sel`, `.fate-placed`, `.fate-missed` | Ordered list of the table's stones, oldest first; current stone outlined, placed ones faded, missed ones struck through. Clicking opens Inspect. |
 | Inspect | `.inspect` (`<dl>`) | Round, Work (+ steers), Stone (size, family, inlay), dataHash, Settlement tx (only when listed; otherwise "Unknown" with Refresh, or "Not in the API's recent settlements"). |
 | Status | `.status` (`role="status"`, polite) | Loading phases, deal result, placement results, errors (`.err`) with an inline Retry. |
 | Data sources | `RpcSetting` in `src/App.tsx`, `.rpc` (`<details>`) | Proxy, frontier, API state, and an optional user-set Sepolia RPC (https only, verified by chain id). |
 
-States: first paint (static 9×9 board in `index.html` before JS), loading (status names the call in progress), dealt (seal and ids in the heading), finished (score line + "Play this table again"), RPC failure (board stays, error + Retry), API unknown, paused (footer warning), Live waiting (empty board, waiting message).
+States: first paint (static 9×9 board in `index.html` before JS), loading (status names the call in progress), dealt (seal and ids in the heading), finished (score line + "Play this table again"), RPC failure (board stays, error + Retry), API unknown, paused (footer warning), Live waiting (empty board, waiting message). Live initialization says "Reading the current SqueekCore frontier for Live…" until its fresh read succeeds; failure offers Retry. Inspect treats an unavailable or unverified API core as unknown and removes previously accepted hashes on loss of verification.
+
+Cover artwork is a separate local SVG composition in `scripts/cover.html`, not a screenshot of the game. It uses 60px wells and 30px gaps with dark empty wells so the grid remains distinct at 64×36. The 1920×1080 PNG and nearest-neighbour preview are in `artifacts/`; `public/og-image.png` is its 1200×675 share thumbnail. The preview's eight-step RGB ramp is explicitly an approximation pending access to the official Code conversion.
 
 ## Do's and Don'ts
 
