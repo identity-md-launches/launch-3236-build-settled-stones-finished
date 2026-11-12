@@ -1,0 +1,25 @@
+{
+  "name": "settled-stones",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Settled Stones: a 9x9 table game where every official settled SqueekCore round is a stone.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview",
+    "test": "node --test test/formula.test.js"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "typescript": "^5.9.3",
+    "vite": "^6.4.6"
+  }
+}

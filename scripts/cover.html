@@ -1,0 +1,60 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#15110c}
+.scene{position:absolute;inset:0;background:#0e0b08}
+svg{position:absolute;inset:0}
+</style></head><body><div class="scene"></div>
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+<defs>
+ <linearGradient id="bed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f3ead6"/><stop offset="1" stop-color="#d9caa8"/></linearGradient>
+ <filter id="soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="22"/></filter>
+ <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/></linearGradient>
+</defs>
+<g id="art"></g>
+</svg>
+<script>
+const NS='http://www.w3.org/2000/svg', art=document.getElementById('art');
+const el=(t,a,p=art)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e};
+const stone={0:'#2f6b4c',1:'#2d4f9e',2:'#8e2a33',3:'#b07a1c'}, mark={0:'#c9f2d6',1:'#cfe0ff',2:'#ffd0d4',3:'#ffe7a8'};
+const N=9, S=82, G=14, size=N*S+(N-1)*G, X0=960-size/2, Y0=540-size/2+20;
+// board shadow + bed
+el('rect',{x:X0-40,y:Y0-10,width:size+80,height:size+80,rx:36,fill:'#000',opacity:.55,filter:'url(#soft)'});
+el('rect',{x:X0-28,y:Y0-28,width:size+56,height:size+56,rx:26,fill:'url(#bed)'});
+const layout=[ // [x,y,suit]
+ [0,0,0],[1,0,0],[0,1,0],[1,1,0],
+ [3,0,1],[4,0,1],[5,0,1],[6,0,1],[7,0,1],
+ [8,0,3],[8,1,3],[8,2,3],[7,2,3],
+ [0,3,2],[0,4,2],[1,4,2],[0,5,2],[0,6,2],
+ [2,7,3],[3,7,3],[4,7,3],[3,8,3],
+ [6,6,0],[7,6,0],[7,7,0],[8,7,0],[8,8,0],
+ [5,3,2],[6,3,2],[6,4,2],
+];
+const occ=new Map(layout.map(([x,y,s])=>[x+','+y,s]));
+const markPath={0:(cx,cy,r)=>`M${cx} ${cy-r}a${r} ${r} 0 1 0 .01 0Z`,1:(cx,cy,r)=>`M${cx-r} ${cy+r*.4}l${r*.5} ${-r*.8} ${r*.5} ${r*.8} ${r*.5} ${-r*.8} ${r*.5} ${r*.8}`,2:(cx,cy,r)=>`M${cx} ${cy-r}l${r} ${r} ${-r} ${r} ${-r} ${-r}Z`,3:(cx,cy,r)=>`M${cx} ${cy-r}v${2*r}M${cx-r} ${cy}h${2*r}M${cx-r*.7} ${cy-r*.7}l${1.4*r} ${1.4*r}M${cx+r*.7} ${cy-r*.7}l${-1.4*r} ${1.4*r}`};
+function drawStone(px,py,w,s,lift){
+  if(lift){el('rect',{x:px+lift*.5,y:py+lift*1.6,width:w,height:w,rx:14,fill:'#000',opacity:.45,filter:'url(#soft)'});}
+  el('rect',{x:px,y:py+6,width:w,height:w,rx:14,fill:'#000',opacity:.35});
+  el('rect',{x:px,y:py,width:w,height:w,rx:14,fill:stone[s]});
+  el('rect',{x:px,y:py,width:w,height:w,rx:14,fill:'url(#sheen)'});
+  el('path',{d:markPath[s](px+w/2,py+w/2,w*.26),fill:'none',stroke:'#0b0806','stroke-width':w*.1,'stroke-linecap':'round','stroke-linejoin':'round',transform:'translate(0,2)',opacity:.6});
+  el('path',{d:markPath[s](px+w/2,py+w/2,w*.26),fill:'none',stroke:mark[s],'stroke-width':w*.075,'stroke-linecap':'round','stroke-linejoin':'round'});
+}
+for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+  const px=X0+x*(S+G), py=Y0+y*(S+G), k=x+','+y;
+  if(occ.has(k)) drawStone(px,py,S,occ.get(k),0);
+  else { el('rect',{x:px,y:py,width:S,height:S,rx:12,fill:'#a8916a'}); el('rect',{x:px+3,y:py+5,width:S-6,height:S-8,rx:10,fill:'#c2ad84'}); }
+}
+// target wells for the falling O stone: (3,4),(4,4),(3,5),(4,5) outlined
+for(const [x,y] of [[3,4],[4,4],[3,5],[4,5]]){const px=X0+x*(S+G),py=Y0+y*(S+G);el('rect',{x:px+4,y:py+4,width:S-8,height:S-8,rx:10,fill:'none',stroke:'#8e2a1f','stroke-width':5,'stroke-dasharray':'14 10'});}
+// the stone mid-place: an O of garnet, lifted and tilted above its wells
+const g=el('g',{transform:`translate(${X0+3*(S+G)-34},${Y0+4*(S+G)-150}) rotate(-8 ${S+G/2} ${S+G/2}) scale(1.12)`});
+const save=art; 
+(function(){const p=art; window.art2=g;})();
+const old=el; 
+const el2=(t,a)=>el(t,a,g);
+el2('rect',{x:30,y:200,width:2*S+G,height:2*S+G,rx:20,fill:'#000',opacity:.28,filter:'url(#soft)'});
+for(const [x,y] of [[0,0],[1,0],[0,1],[1,1]]){const px=x*(S+G),py=y*(S+G);
+  el2('rect',{x:px,y:py+9,width:S,height:S,rx:14,fill:'#000',opacity:.4});
+  el2('rect',{x:px,y:py,width:S,height:S,rx:14,fill:'#a8323c'});
+  el2('rect',{x:px,y:py,width:S,height:S,rx:14,fill:'url(#sheen)'});
+  el2('path',{d:markPath[2](px+S/2,py+S/2,S*.26),fill:'none',stroke:'#ffe0e3','stroke-width':S*.08,'stroke-linecap':'round','stroke-linejoin':'round'});}
+</script></body></html>
